@@ -11,7 +11,7 @@ const taskModel = new mongoose.Schema(
         },
         categories: {
             type: String,
-            enum: ["Work", "Personal", "Others"],
+            enum: ["work", "personal", "others"],
             default: "Others"
         },
         deadline: {

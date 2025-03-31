@@ -1,16 +1,29 @@
+const moment = require("moment");
 const taskModel = require("../model/taskModel");
+const userModel = require("../model/userModel");
 
 const get_user_tasks = async (req, res, next) => {
     const userId = req.user._id;
+    const { category, deadline } = req.query;
+
     try {
-        const tasks = await taskModel.find({ userId });
-        if (!tasks) {
-            return res.status(404).json({ message: "No tasks found." });
-        } else {
-            return res
-                .status(200)
-                .json({ message: "Tasks successfully fetched", tasks });
+        let filter = { userId };
+
+        if (category) {
+            filter.category = category;
         }
+
+        if (deadline) {
+            filter.deadline = { $lte: new Date(deadline) };
+        }
+
+        const tasks = await taskModel.find(filter);
+
+        if (tasks.length === 0) {
+            return res.status(404).json({ message: "No tasks found." });
+        }
+
+        res.status(200).json({ message: "Tasks successfully fetched", tasks });
     } catch (error) {
         next(error);
     }
@@ -20,7 +33,7 @@ const create_a_task = async (req, res, next) => {
     const userId = req.user._id;
 
     try {
-        const user = await userModel.findById(userInfo);
+        const user = await userModel.findById(userId);
         // if (!user) {
         //     return res
         //         .status(401)
@@ -30,6 +43,8 @@ const create_a_task = async (req, res, next) => {
         const newTask = new taskModel({
             ...req.body,
             userId: userId,
+            categories: req.body.categories.toLowerCase(),
+            deadline: moment(req.body.deadline, "DD/MM/YYYY").add(1, 'days').toISOString()
         });
         const createdTask = await newTask.save();
         user.taskIds.push(createdTask._id);
@@ -78,7 +93,7 @@ const delete_a_task = async (req, res, next) => {
             });
         }
 
-        await blogModel.findByIdAndDelete(id);
+        await taskModel.findByIdAndDelete(id);
 
         if (user) {
             user.taskIds = user.taskIds.filter((taskId) => taskId !== id);
@@ -90,40 +105,9 @@ const delete_a_task = async (req, res, next) => {
     }
 };
 
-const get_tasks_by_category = async (req, res, next) => {
-    const userId = req.user._id;
-    const { category } = req.query;
-    try {
-        let filter = { userId: userId };
-        if (category) {
-            filter.category = category;
-        }
-        const tasks = await taskModel.find(filter);
-        res.status(200).json({ message: "Task fetched successfully", tasks });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const get_tasks_by_deadline = async (req, res, next) => {
-    const userId = req.user._id
-    const {deadline} = req.query
-    try {
-        const filter = {userId: userId}
-        if(deadline) {
-            filter.deadline = {$lte: new Date(deadline)}
-        }
-        const tasks = await taskModel.find(filter)
-        res.status(200).json({message: "Tasks successfully fetched", tasks})
-    } catch (error) {
-        next(error)
-    }
-}
-
 module.exports = {
     get_user_tasks,
     create_a_task,
     update_a_task,
     delete_a_task,
-    get_tasks_by_category,
 };
