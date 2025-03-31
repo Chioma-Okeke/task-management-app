@@ -4,17 +4,19 @@ const userModel = require("../model/userModel");
 
 const get_user_tasks = async (req, res, next) => {
     const userId = req.user._id;
-    const { category, deadline } = req.query;
+    const { categories, deadline } = req.query;
 
     try {
         let filter = { userId };
 
-        if (category) {
-            filter.category = category;
+        if (categories) {
+            filter.categories = categories;
         }
 
+        console.log(moment(req.body.deadline, "DD/MM/YYYY").toISOString(), "deadline date")
+
         if (deadline) {
-            filter.deadline = { $lte: new Date(deadline) };
+            filter.deadline = { $lte: moment(req.body.deadline, "DD/MM/YYYY").toISOString() };
         }
 
         const tasks = await taskModel.find(filter);
